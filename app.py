@@ -3,8 +3,11 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from google.cloud import storage
 from pydantic import BaseModel
+import requests
 import openai
 import os
+import random
+import string
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -13,12 +16,15 @@ load_dotenv()
 api_key = os.environ.get("OPENAI_API_KEY")
 bucket_name = os.environ.get('GCP_BUCKET_NAME')
 
+def rand_str(count):
+    """Generate a random 8-character string."""
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=count))
+
 # Set up OpenAI API credentials
 openai.api_key = api_key
 
 # Create a storage client using the default credentials
 storage_client = storage.Client()
-
 
 # Set up FastAPI app
 app = FastAPI()
@@ -41,17 +47,27 @@ async def generate_prompt(request: PromptRequest):
     # Return the generated text as a JSON response
     return JSONResponse(content={"prompt": generated_text})
 
-def save(image, bucket_name, object_name):
+def save(image_url, bucket_name, object_name):
+    # Get the bucket object
     bucket = storage_client.get_bucket(bucket_name)
+
+    # Create a blob object with the desired object name
     blob = bucket.blob(object_name)
-    blob.upload_from_string(image, content_type='image/jpeg')
+
+    # Download the image data from the URL
+    response = requests.get(image_url)
+    image_data = response.content
+
+    # Upload the image data to the blob
+    blob.upload_from_string(image_data, content_type='image/jpeg')
 
     # Print the public URL of the uploaded image
     return blob.public_url
 
 # Define a method to generate frames using OpenAI API
 @app.post("/frames")
-async def generate_frames(prompt: str):
+async def generate_frames(prompt: str, style: str):
+    prompt = style + ", " + prompt
     try:
         # Generate image URLs using OpenAI API
         response = openai.api.Completion.create(
@@ -61,12 +77,12 @@ async def generate_frames(prompt: str):
             size='512x256'
         )
 
-        # Extract image data from response and save to Google Cloud Storage
-        image_data = response.choices[0].text.encode('utf-8')
-        save(image_data, f"{prompt}.png")
+        image_urls = [d['url'] for d in response['data']]
+        for url in image_urls:
+            save(url, bucket_name, prompt + rand_str(8))
 
         # Return a success message
-        return JSONResponse(content={"message": "Frames generated and saved."})
+        return JSONResponse(content={"message": "Frames generated and saved.", "urls": image_urls})
 
     except Exception as e:
         # Return an error message if an exception occurs
