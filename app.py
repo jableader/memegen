@@ -16,16 +16,16 @@ bucket_name = os.environ.get('GCP_BUCKET_NAME')
 # Set up OpenAI API credentials
 openai.api_key = api_key
 
+# Create a storage client using the default credentials
+storage_client = storage.Client()
 
-# Set up Google Cloud Storage credentials
-storage_client = storage.Client.from_service_account_json('path_to_credentials_file')
 
 # Set up FastAPI app
 app = FastAPI()
 
 class PromptRequest(BaseModel):
     prompt: str
-
+    
 @app.post("/prompt")
 async def generate_prompt(request: PromptRequest):
     # Use the OpenAI API to generate the prompt
@@ -41,11 +41,13 @@ async def generate_prompt(request: PromptRequest):
     # Return the generated text as a JSON response
     return JSONResponse(content={"prompt": generated_text})
 
-# Define a method to save an image to Google Cloud Storage
-def save(image_data, filename):
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(filename)
-    blob.upload_from_string(image_data, content_type='image/png')
+def save(image, bucket_name, object_name):
+    bucket = storage_client.get_bucket(bucket_name)
+    blob = bucket.blob(object_name)
+    blob.upload_from_string(image, content_type='image/jpeg')
+
+    # Print the public URL of the uploaded image
+    return blob.public_url
 
 # Define a method to generate frames using OpenAI API
 @app.post("/frames")
