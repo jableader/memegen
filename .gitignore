@@ -1,3 +1,4 @@
 .env
 *.pyc
 .venv
+.gclient_key.json
