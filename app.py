@@ -1,16 +1,27 @@
+import openai
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from google.cloud import storage
 from pydantic import BaseModel
 import openai
 import os
 
-app = FastAPI()
+from dotenv import load_dotenv
+load_dotenv()
 
 # Get the OpenAI API key from an environment variable
 api_key = os.environ.get("OPENAI_API_KEY")
+bucket_name = os.environ.get('GCP_BUCKET_NAME')
 
 # Set up OpenAI API credentials
 openai.api_key = api_key
+
+
+# Set up Google Cloud Storage credentials
+storage_client = storage.Client.from_service_account_json('path_to_credentials_file')
+
+# Set up FastAPI app
+app = FastAPI()
 
 class PromptRequest(BaseModel):
     prompt: str
@@ -29,3 +40,32 @@ async def generate_prompt(request: PromptRequest):
 
     # Return the generated text as a JSON response
     return JSONResponse(content={"prompt": generated_text})
+
+# Define a method to save an image to Google Cloud Storage
+def save(image_data, filename):
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(filename)
+    blob.upload_from_string(image_data, content_type='image/png')
+
+# Define a method to generate frames using OpenAI API
+@app.post("/frames")
+async def generate_frames(prompt: str):
+    try:
+        # Generate image URLs using OpenAI API
+        response = openai.api.Completion.create(
+            engine="image-alpha-001",
+            prompt=prompt,
+            num_images=2,
+            size='512x256'
+        )
+
+        # Extract image data from response and save to Google Cloud Storage
+        image_data = response.choices[0].text.encode('utf-8')
+        save(image_data, f"{prompt}.png")
+
+        # Return a success message
+        return JSONResponse(content={"message": "Frames generated and saved."})
+
+    except Exception as e:
+        # Return an error message if an exception occurs
+        return JSONResponse(content={"error": str(e)}, status_code=500)
