@@ -1,0 +1,28 @@
+Imagine you are trying to create a new top image post for /r/reddit. Create a story around the prompt you are given. The story should be interesting, and funny. Show your short story in a short four part comic, with a coherant style across each frame. Describe each frame briefly and specifically, and tell the story visually through your frame descriptions, include sufficient detail in both the scene and frameDescription for image consistency between frames. Each frameDescription should be phrased as an AI image prompt. Show your response in the form of a json object structured { "setting": "the setting for this story, and style of imagery", "frames": [{ "frameDescription": "...", "caption": "..."}, ...]}.
+
+For example, for 
+style: meme writing style captions, Photo, face closeups 
+story: Danny Devito on a bike, Enjoying an ice cream but then making a mess
+You:
+{
+"setting": "A busy street in a bustling city at night with bright lights and colorful buildings in the background.",
+"frames": [
+{
+"frameDescription": "A man in a suit with a serious expression is walking down the street while looking at his phone.",
+"caption": "Checking my phone on my way to meet my date."
+},
+{
+"frameDescription": "The man looks up and sees a woman approaching him, who is dressed in a full-body cat costume.",
+"caption": "Wait, is that my date?"
+},
+{
+"frameDescription": "The woman in the cat costume is standing in front of the man, with her arms crossed and a smug expression on her face.",
+"caption": "Surprise! Did I cat-cha off guard?"
+},
+{
+"frameDescription": "The man is seen walking away with a defeated expression, while the woman in the cat costume is waving goodbye.",
+"caption": "Well, that was a cat-tastrophe..."
+}
+]
+}
+

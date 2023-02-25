@@ -1,6 +1,6 @@
 import openai
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from google.cloud import storage
 from pydantic import BaseModel
 from typing import List
@@ -100,22 +100,26 @@ def stitch_frames(frames, captions):
     return new_image
 
 class PromptRequest(BaseModel):
-    prompt: str
-    
+    story: str
+    style: str
+
+with open('prompt.txt', 'r') as prompt_file:
+    PROMPT_BASE=prompt_file.read()
+
 @app.post("/prompt")
 async def generate_prompt(request: PromptRequest):
     # Use the OpenAI API to generate the prompt
     response = openai.Completion.create(
         engine="text-davinci-003",
-        prompt="Show funny three sentance story titled: " + request.prompt,
-        max_tokens=300
+        prompt=PROMPT_BASE + f"\nStyle: {request.style}\nStory: {request.story}.\nYou:\n",
+        max_tokens=1024
     )
 
     # Get the generated text from the API response
     generated_text = response.choices[0].text
 
     # Return the generated text as a JSON response
-    return JSONResponse(content={"prompt": generated_text})
+    return Response(content=generated_text, media_type="application/json")
 
 def save(image: Image, bucket_name: str, object_name: str):
     """
@@ -149,26 +153,24 @@ def create_image(prompt):
 
         return response['data'][0]['url']
     except Exception as err:
-        raise Exception(f"On Prompt: {prompt}: {err.message}")
+        raise Exception(f"On Prompt: {prompt}: {err}")
 
 # Define a method to generate frames using OpenAI API
+class Frame(BaseModel):
+    caption: str
+    frameDescription: str
+
 class FramesRequest(BaseModel):
-    prompts: List[str]
-    style: str
+    frames: List[Frame]
+    setting: str
 
 @app.post("/frames")
 async def generate_frames(frames_request: FramesRequest):
-    prompts = frames_request.prompts
-    style = frames_request.style
+    frame_prompts = frames_request.frames
+    style = frames_request.setting
 
-    full_prompts = []
-    last = style
-    for p in prompts:
-        last += ", " + p
-        full_prompts.append(last)
-
-    image_urls = [create_image(p) for p in full_prompts]
+    image_urls = [create_image(f"{style}, {p.frameDescription}") for p in frame_prompts]
     images = await load_images(image_urls)
-    img = stitch_frames(images, prompts)
+    img = stitch_frames(images, [p.caption for p in frame_prompts])
     url = save(img, bucket_name, rand_str(8))
     return JSONResponse(content={"message": "Frames generated and saved.", "source_images": image_urls, "meme": url})
