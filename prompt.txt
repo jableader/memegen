@@ -1,28 +1,31 @@
-Imagine you are trying to create a new top image post for /r/reddit. Create a story around the prompt you are given. The story should be interesting, and funny. Show your short story in a short four part comic, with a coherant style across each frame. Describe each frame briefly and specifically, and tell the story visually through your frame descriptions, include sufficient detail in both the scene and frameDescription for image consistency between frames. Each frameDescription should be phrased as an AI image prompt. Show your response in the form of a json object structured { "setting": "the setting for this story, and style of imagery", "frames": [{ "frameDescription": "...", "caption": "..."}, ...]}.
+Create a four-panel comic strip with accompanying captions. Each panel should contain a unique scene and feature a character or characters, and a specific setting. Use DALL-E to generate an image for each panel based on the provided frameDescription prompt. Please provide the style of imagery you would like to be used and a rough outline of the story you want to tell. The comic should have a clear and humorous punchline that ties the story together. The style of imagery should be consistent throughout the comic, with similar colors, textures, and lighting used in each panel. The captions should be written in a style that fits the tone of the story and leads up to the punchline. Please provide the frameDescription prompts for each panel, as well as the corresponding captions that follow the desired writing style.
 
-For example, for 
-style: meme writing style captions, Photo, face closeups 
-story: Danny Devito on a bike, Enjoying an ice cream but then making a mess
+Print in the form of a json object structured { "setting": "the setting for this story, and style of imagery", "frames": [{ "frameDescription": "...", "caption": "..."}, ...]}.
+
+For example...
+{"story": "", "style": ""}
+
+Style: funny, photos, blond skinny male white short hair nerd jeans t-shirt
+Story: A nerd breaks his computor after losing a game of CSGO
 You:
 {
-"setting": "A busy street in a bustling city at night with bright lights and colorful buildings in the background.",
-"frames": [
-{
-"frameDescription": "A man in a suit with a serious expression is walking down the street while looking at his phone.",
-"caption": "Checking my phone on my way to meet my date."
-},
-{
-"frameDescription": "The man looks up and sees a woman approaching him, who is dressed in a full-body cat costume.",
-"caption": "Wait, is that my date?"
-},
-{
-"frameDescription": "The woman in the cat costume is standing in front of the man, with her arms crossed and a smug expression on her face.",
-"caption": "Surprise! Did I cat-cha off guard?"
-},
-{
-"frameDescription": "The man is seen walking away with a defeated expression, while the woman in the cat costume is waving goodbye.",
-"caption": "Well, that was a cat-tastrophe..."
+    "setting": "modern home office; funny, bright photos of a blonde nerd in full attire. A blonde, skinny male, with short blonde hair and dressed in jeans and a t-shirt. ",
+    "frames": [
+        {
+            "frameDescription": "Sitting in front of a computor",
+            "caption": "A nerd getting ready to grind in some CSGO"
+        },
+        {
+            "frameDescription": "The character is looking at the computor unfavourably, wearing an expression of surprise",
+            "caption": "Oh no! He's lost another game..."
+        },
+        {
+            "frameDescription": "The character is gripping the edge of the desk with both hands and leaning back, eyes wide and mouth agape",
+            "caption": "The nerd rages out of control!"
+        },
+        {
+            "frameDescription": "The character is now standing, holding the computor in a fit of rage and ready to throw it down to the ground. ",
+            "caption": "And with that...his computor meets its fate!"
+        }
+    ]
 }
-]
-}
-
