@@ -63,9 +63,29 @@ def stitch_frames(frames, captions):
         while text_width > width:
             font = ImageFont.truetype('FreeMono.ttf', size=font.size - 1)
             text_width, text_height = font.getsize(text)
-        text_image = Image.new('RGB', (text_width, text_height), color=(255, 255, 255))
+        
+        # Line-wrap the text
+        words = text.split()
+        lines = []
+        line = ''
+        for word in words:
+            if font.getsize(line + ' ' + word)[0] <= width:
+                line += ' ' + word
+            else:
+                lines.append(line.lstrip())
+                line = word
+        if line:
+            lines.append(line.lstrip())
+        
+        # Create a new image for the caption and draw the text
+        text_image = Image.new('RGB', (width, len(lines) * text_height), color=(255, 255, 255))
         draw = ImageDraw.Draw(text_image)
-        draw.text((0, 0), text, font=font, fill=(0, 0, 0))
+        for j, line in enumerate(lines):
+            text_width, text_height = font.getsize(line)
+            x = (width - text_width) / 2
+            y = j * text_height
+            # Draw white text with black stroke
+            draw.text((x, y), line, font=font, fill=(255, 255, 255), stroke_width=1, stroke_fill=(0, 0, 0))
         
         # Calculate the coordinates to paste the frame and caption into the new image
         row = i // 2
@@ -75,7 +95,7 @@ def stitch_frames(frames, captions):
         
         # Paste the frame and caption into the new image
         new_image.paste(frames[i], (x, y))
-        new_image.paste(text_image, (x, y + height - text_height))
+        new_image.paste(text_image, (x, y + (2 * height // 3) - (len(lines) * text_height // 2)))
         
     return new_image
 
@@ -140,7 +160,14 @@ class FramesRequest(BaseModel):
 async def generate_frames(frames_request: FramesRequest):
     prompts = frames_request.prompts
     style = frames_request.style
-    image_urls = [create_image(f"{style}, {p}") for p in prompts]
+
+    full_prompts = []
+    last = style
+    for p in prompts:
+        last += ", " + p
+        full_prompts.append(last)
+
+    image_urls = [create_image(p) for p in full_prompts]
     images = await load_images(image_urls)
     img = stitch_frames(images, prompts)
     url = save(img, bucket_name, rand_str(8))
