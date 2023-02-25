@@ -60,9 +60,6 @@ def stitch_frames(frames, captions):
         font = ImageFont.truetype('FreeMono.ttf', size=20)
         text = captions[i]
         text_width, text_height = font.getsize(text)
-        while text_width > width:
-            font = ImageFont.truetype('FreeMono.ttf', size=font.size - 1)
-            text_width, text_height = font.getsize(text)
         
         # Line-wrap the text
         words = text.split()
