@@ -3,11 +3,17 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from google.cloud import storage
 from pydantic import BaseModel
+from typing import List
 import requests
 import openai
 import os
 import random
 import string
+import requests
+import asyncio
+import aiohttp
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -29,6 +35,50 @@ storage_client = storage.Client()
 # Set up FastAPI app
 app = FastAPI()
 
+async def load_images(urls):
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for url in urls:
+            tasks.append(asyncio.ensure_future(load_image(session, url)))
+        return await asyncio.gather(*tasks)
+
+async def load_image(session, url):
+    async with session.get(url) as response:
+        image_data = await response.read()
+        return Image.open(BytesIO(image_data))
+
+def stitch_frames(frames, captions):
+    # Assume all frames are the same size
+    width, height = frames[0].size
+    
+    # Create a new image to hold the stitched frames
+    new_image = Image.new('RGB', (2 * width, 2 * height))
+    
+    # Iterate through the frames and captions and paste them into the new image
+    for i in range(len(frames)):
+        # Resize the caption to fit within the width of the frame
+        font = ImageFont.truetype('arial.ttf', size=20)
+        text = captions[i]
+        text_width, text_height = font.getsize(text)
+        while text_width > width:
+            font = ImageFont.truetype('arial.ttf', size=font.size - 1)
+            text_width, text_height = font.getsize(text)
+        text_image = Image.new('RGB', (text_width, text_height), color=(255, 255, 255))
+        draw = ImageDraw.Draw(text_image)
+        draw.text((0, 0), text, font=font, fill=(0, 0, 0))
+        
+        # Calculate the coordinates to paste the frame and caption into the new image
+        row = i // 2
+        col = i % 2
+        x = col * width
+        y = row * height
+        
+        # Paste the frame and caption into the new image
+        new_image.paste(frames[i], (x, y))
+        new_image.paste(text_image, (x, y + height - text_height), mask=text_image)
+        
+    return new_image
+
 class PromptRequest(BaseModel):
     prompt: str
     
@@ -47,43 +97,49 @@ async def generate_prompt(request: PromptRequest):
     # Return the generated text as a JSON response
     return JSONResponse(content={"prompt": generated_text})
 
-def save(image_url, bucket_name, object_name):
-    # Get the bucket object
-    bucket = storage_client.get_bucket(bucket_name)
+def save(image: Image, bucket_name: str, object_name: str):
+    """
+    Saves an Image to a Google Cloud Storage bucket.
+    """
+    # Convert image to bytes
+    with BytesIO() as output:
+        image.save(output, format='JPEG')
+        image_bytes = output.getvalue()
 
-    # Create a blob object with the desired object name
+    # Create a client object to interact with the Google Cloud Storage API
+    storage_client = storage.Client()
+
+    # Get the bucket to save the image in
+    bucket = storage_client.bucket(bucket_name)
+
+    # Create a blob object to represent the image file and upload the image
     blob = bucket.blob(object_name)
+    blob.upload_from_string(image_bytes, content_type='image/jpeg')
 
-    # Download the image data from the URL
-    response = requests.get(image_url)
-    image_data = response.content
-
-    # Upload the image data to the blob
-    blob.upload_from_string(image_data, content_type='image/jpeg')
-
-    # Print the public URL of the uploaded image
     return blob.public_url
 
+def create_image(prompt):
+ # Generate image URLs using OpenAI API
+    response = openai.api.Completion.create(
+        engine="image-alpha-001",
+        prompt=prompt,
+        num_images=2,
+        size='512x512'
+    )
+
+    return response['data']['url'][0]
+
 # Define a method to generate frames using OpenAI API
+class FramesRequest(BaseModel):
+    prompts: List[str]
+    style: str
+
 @app.post("/frames")
-async def generate_frames(prompt: str, style: str):
-    prompt = style + ", " + prompt
-    try:
-        # Generate image URLs using OpenAI API
-        response = openai.api.Completion.create(
-            engine="image-alpha-001",
-            prompt=prompt,
-            num_images=2,
-            size='512x256'
-        )
-
-        image_urls = [d['url'] for d in response['data']]
-        for url in image_urls:
-            save(url, bucket_name, prompt + rand_str(8))
-
-        # Return a success message
-        return JSONResponse(content={"message": "Frames generated and saved.", "urls": image_urls})
-
-    except Exception as e:
-        # Return an error message if an exception occurs
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+async def generate_frames(frames_request: FramesRequest):
+    prompts = frames_request.prompts
+    style = frames_request.style
+    image_urls = [create_image(f"{style}, {p}") for p in prompts]
+    images = await load_images(image_urls)
+    img = stitch_frames(images, prompts)
+    url = save(img, bucket_name, rand_str(8))
+    return JSONResponse(content={"message": "Frames generated and saved.", "source_images": image_urls, "meme": url})
