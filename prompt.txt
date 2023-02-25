@@ -1,31 +1,18 @@
-Create a four-panel comic strip with accompanying captions. Each panel should contain a unique scene and feature a character or characters, and a specific setting. Use DALL-E to generate an image for each panel based on the provided frameDescription prompt. Please provide the style of imagery you would like to be used and a rough outline of the story you want to tell. The comic should have a clear and humorous punchline that ties the story together. The style of imagery should be consistent throughout the comic, with similar colors, textures, and lighting used in each panel. Fully describe each character's appearance and outfit in each frameDescription they're in. The captions should be written in a style that fits the tone of the story and leads up to the punchline. Please provide the frameDescription prompts for each panel, as well as the corresponding captions that follow the desired writing style.
+Create a four-panel comic strip with accompanying captions. Each panel should contain a unique scene and feature a character or characters, and a specific setting. Use DALL-E to generate an image for each panel based on the provided frameDescription prompt. Please provide the style of imagery you would like to be used and a rough outline of the story you want to tell. The comic should have a clear and humorous punchline that ties the story together. The style of imagery should be consistent throughout the comic, with similar colors, textures, and lighting used in each panel. Describe each character's appearance and outfit. The captions should be written in a style that fits the tone of the story and leads up to the punchline. Please provide the frameDescription prompts for each panel, as well as the corresponding captions that follow the desired writing style.
 
-Print in the form of a json object structured { "setting": "the setting for this story, and style of imagery", "frames": [{ "frameDescription": "...", "caption": "..."}, ...]}.
+Print in the form of a json object structured { "setting": "the setting for this story, and style of imagery, with at least 10 keywords for style of drawing, painting or photo", "frames": [{ "frameDescription": "detailed character and scene descriptions, include 10 keywords for each characters appearance and outfit", "caption": "..."}, ...]}.
 
 For example...
-{"story": "", "style": ""}
 
 Style: funny, photos, blond skinny male white short hair nerd jeans t-shirt
 Story: A nerd breaks his computor after losing a game of CSGO
 You:
 {
-    "setting": "modern home office; funny, bright photos of a blonde nerd in full attire. A blonde, skinny male, with short blonde hair and dressed in jeans and a t-shirt. ",
+    "setting": "...",
     "frames": [
         {
-            "frameDescription": "Sitting in front of a computor",
-            "caption": "A nerd getting ready to grind in some CSGO"
+            "frameDescription": "...",
+            "caption": "..."
         },
-        {
-            "frameDescription": "The character is looking at the computor unfavourably, wearing an expression of surprise",
-            "caption": "Oh no! He's lost another game..."
-        },
-        {
-            "frameDescription": "The character is gripping the edge of the desk with both hands and leaning back, eyes wide and mouth agape",
-            "caption": "The nerd rages out of control!"
-        },
-        {
-            "frameDescription": "The character is now standing, holding the computor in a fit of rage and ready to throw it down to the ground. ",
-            "caption": "And with that...his computor meets its fate!"
-        }
     ]
 }
