@@ -57,11 +57,11 @@ def stitch_frames(frames, captions):
     # Iterate through the frames and captions and paste them into the new image
     for i in range(len(frames)):
         # Resize the caption to fit within the width of the frame
-        font = ImageFont.truetype('arial.ttf', size=20)
+        font = ImageFont.truetype('FreeMono.ttf', size=20)
         text = captions[i]
         text_width, text_height = font.getsize(text)
         while text_width > width:
-            font = ImageFont.truetype('arial.ttf', size=font.size - 1)
+            font = ImageFont.truetype('FreeMono.ttf', size=font.size - 1)
             text_width, text_height = font.getsize(text)
         text_image = Image.new('RGB', (text_width, text_height), color=(255, 255, 255))
         draw = ImageDraw.Draw(text_image)
@@ -75,7 +75,7 @@ def stitch_frames(frames, captions):
         
         # Paste the frame and caption into the new image
         new_image.paste(frames[i], (x, y))
-        new_image.paste(text_image, (x, y + height - text_height), mask=text_image)
+        new_image.paste(text_image, (x, y + height - text_height))
         
     return new_image
 
@@ -119,15 +119,17 @@ def save(image: Image, bucket_name: str, object_name: str):
     return blob.public_url
 
 def create_image(prompt):
- # Generate image URLs using OpenAI API
-    response = openai.api.Completion.create(
-        engine="image-alpha-001",
-        prompt=prompt,
-        num_images=2,
-        size='512x512'
-    )
+    try:
+        # Generate image URLs using OpenAI API
+        response = openai.Image.create(
+            prompt=prompt,
+            n=1,
+            size="512x512"
+        )
 
-    return response['data']['url'][0]
+        return response['data'][0]['url']
+    except Exception as err:
+        raise Exception(f"On Prompt: {prompt}: {err.message}")
 
 # Define a method to generate frames using OpenAI API
 class FramesRequest(BaseModel):
