@@ -1,6 +1,6 @@
 # memegen
 
-Just some trash I got ChatGPT to write for me.
+Just some trash I got ChatGPT to write for me. There are two endpoints, `/prompt` which uses GPT-3 to generate a four-part story with accompanying scene descriptions, and `/frames` which turns those frame descriptions into a real comic using DALL-E.
 
 Example command to create a story about "A cat chases a mouse" in a "Hanna-Barbera Cartoon" style, saving the story to sample.json:
 ```
