@@ -1,17 +1,12 @@
 import openai
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse, Response
-from google.cloud import storage
-from pydantic import BaseModel
-from typing import List
-import requests
-import openai
 import os
 import random
 import string
-import requests
 import asyncio
 import aiohttp
+import functions_framework
+
+from google.cloud import storage
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
@@ -31,9 +26,6 @@ openai.api_key = api_key
 
 # Create a storage client using the default credentials
 storage_client = storage.Client()
-
-# Set up FastAPI app
-app = FastAPI()
 
 async def load_images(urls):
     async with aiohttp.ClientSession() as session:
@@ -57,7 +49,7 @@ def stitch_frames(frames, captions):
     # Iterate through the frames and captions and paste them into the new image
     for i in range(len(frames)):
         # Resize the caption to fit within the width of the frame
-        font = ImageFont.truetype('FreeMono.ttf', size=20)
+        font = ImageFont.truetype('./font.ttf', size=20)
         text = captions[i]
         text_width, text_height = font.getsize(text)
         
@@ -96,28 +88,6 @@ def stitch_frames(frames, captions):
         
     return new_image
 
-class PromptRequest(BaseModel):
-    story: str
-    style: str
-
-with open('prompt.txt', 'r') as prompt_file:
-    PROMPT_BASE=prompt_file.read()
-
-@app.post("/prompt")
-async def generate_prompt(request: PromptRequest):
-    # Use the OpenAI API to generate the prompt
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=PROMPT_BASE + f"\nStyle: {request.style}\nStory: {request.story}.\nYou:\n",
-        max_tokens=1024
-    )
-
-    # Get the generated text from the API response
-    generated_text = response.choices[0].text
-
-    # Return the generated text as a JSON response
-    return Response(content=generated_text, media_type="application/json")
-
 def save(image: Image, bucket_name: str, object_name: str):
     """
     Saves an Image to a Google Cloud Storage bucket.
@@ -139,6 +109,11 @@ def save(image: Image, bucket_name: str, object_name: str):
 
     return blob.public_url
 
+class ImageCreationRefused(Exception):
+	def __init__(self, err, prompt):
+		self.prompt = prompt
+		super().__init__(str(err))
+
 def create_image(prompt):
     try:
         # Generate image URLs using OpenAI API
@@ -150,24 +125,24 @@ def create_image(prompt):
 
         return response['data'][0]['url']
     except Exception as err:
-        raise Exception(f"On Prompt: {prompt}: {err}")
+        raise ImageCreationRefused(err, prompt)
 
-# Define a method to generate frames using OpenAI API
-class Frame(BaseModel):
-    caption: str
-    frameDescription: str
+@functions_framework.errorhandler(ImageCreationRefused)
+def handle_naughty_image(er):
+	return { 'message': 'Refused to render', 'prompt': er.prompt, 'error': str(er) }, 400
 
-class FramesRequest(BaseModel):
-    frames: List[Frame]
-    setting: str
+@functions_framework.http
+def frames(request):
+  r = request.get_json()
 
-@app.post("/frames")
-async def generate_frames(frames_request: FramesRequest):
-    frame_prompts = frames_request.frames
-    style = frames_request.setting
+  style = r['setting']
+  frame_prompts = r['frames']
+  captions = [ p['caption'] for p in frame_prompts ]
+  image_prompts = [ f"{style}, {p['frameDescription']}" for p in frame_prompts ]
 
-    image_urls = [create_image(f"{style}, {p.frameDescription}") for p in frame_prompts]
-    images = await load_images(image_urls)
-    img = stitch_frames(images, [p.caption for p in frame_prompts])
-    url = save(img, bucket_name, rand_str(8))
-    return JSONResponse(content={"message": "Frames generated and saved.", "source_images": image_urls, "meme": url})
+  image_urls = [ create_image(p) for p in image_prompts ]
+  images = asyncio.run(load_images(image_urls))
+  img = stitch_frames(images, captions)
+  url = save(img, bucket_name, rand_str(8))
+
+  return { "message": "Frames generated and saved.", "source_images": image_urls, "meme": url }
