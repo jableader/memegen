@@ -109,6 +109,11 @@ def save(image: Image, bucket_name: str, object_name: str):
 
     return blob.public_url
 
+class ImageCreationRefused(Exception):
+	def __init__(self, err, prompt):
+		self.prompt = prompt
+		super().__init__(str(err))
+
 def create_image(prompt):
     try:
         # Generate image URLs using OpenAI API
@@ -120,7 +125,11 @@ def create_image(prompt):
 
         return response['data'][0]['url']
     except Exception as err:
-        raise Exception(f"On Prompt: {prompt}: {err}")
+        raise ImageCreationRefused(err, prompt)
+
+@functions_framework.errorhandler(ImageCreationRefused)
+def handle_naughty_image(er):
+	return { 'message': 'Refused to render', 'prompt': er.prompt, 'error': str(er) }, 400
 
 @functions_framework.http
 def frames(request):
@@ -136,4 +145,4 @@ def frames(request):
   img = stitch_frames(images, captions)
   url = save(img, bucket_name, rand_str(8))
 
-  return {"message": "Frames generated and saved.", "source_images": image_urls, "meme": url}
+  return { "message": "Frames generated and saved.", "source_images": image_urls, "meme": url }
