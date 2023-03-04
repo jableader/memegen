@@ -49,7 +49,7 @@ def stitch_frames(frames, captions):
     # Iterate through the frames and captions and paste them into the new image
     for i in range(len(frames)):
         # Resize the caption to fit within the width of the frame
-        font = ImageFont.truetype('FreeMono.ttf', size=20)
+        font = ImageFont.truetype('./font.ttf', size=20)
         text = captions[i]
         text_width, text_height = font.getsize(text)
         
