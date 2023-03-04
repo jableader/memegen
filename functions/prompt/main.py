@@ -3,9 +3,6 @@ import openai
 import json
 import os
 
-from dotenv import load_dotenv
-load_dotenv()
-
 api_key = os.environ.get("OPENAI_API_KEY")
 
 with open('prompt.txt', 'r') as prompt_file:
@@ -26,6 +23,7 @@ def prompt(request):
 
     # Get the generated text from the API response
     generated_text = response.choices[0].text
+    print(generated_text)
 
     # Return the generated text as a JSON response
     return json.loads(generated_text)
