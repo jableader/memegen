@@ -6,10 +6,12 @@ def test_prompt():
     assert BASE_URL is not None
 
     res = requests.post(f'{BASE_URL}/prompt', json={
-      'style': 'Modern James Bond Film',
+      'style': 'Simpsons Cartoon',
       'story': 'A cowboy fights aliens'
     })
 
-    js = res.get_json()
-    assert 'Bond' in js['style']
+    js = res.json()
+    assert 'cartoon' in js['setting']
     assert len(js['frames']) == 4
+    assert 'frameDescription'in js['frames'][0]
+    assert 'caption'in js['frames'][0]

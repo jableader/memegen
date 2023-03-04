@@ -1,0 +1,38 @@
+swagger: '2.0'
+info:
+  title: memegen
+  version: 1.0.0
+schemes:
+  - https
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
+  /frames:
+    post:
+      summary: Create a four panel meme from the provided frames and style
+      description: Creates a new meme with the given parameters. The parameters are a `style` text prompt, and `frames` array of objects with a frameDescription and caption
+      operationId: frames
+      x-google-backend:
+        address: https://frames-4uovlrccqq-uc.a.run.app
+        deadline: 120.0
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+
+  /prompt:
+    post:
+      summary: Create a four panel comic description
+      description: Creates a new meme with the supplied style and story strings, returns a format suitable to pass into /frames
+      operationId: prompt
+      x-google-backend:
+        address: https://prompt-4uovlrccqq-uc.a.run.app
+        deadline: 60.0
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
